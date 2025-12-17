@@ -1,0 +1,12 @@
+langchain
+langchain-ollama
+langchain-community
+langgraph
+chromadb
+faiss-cpu
+sentence-transformers
+pypdf
+python-dotenv
+beautifulsoup4
+requests
+duckduckgo-search

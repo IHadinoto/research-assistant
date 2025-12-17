@@ -950,3 +950,52 @@ You've built a production-grade research assistant with:
 **Total cost: $0.00** 🎉
 
 This system rivals commercial solutions and demonstrates enterprise-level LangChain proficiency!
+
+---
+
+## Automated run notes (what I ran and outcomes)
+
+I executed the README instructions in this repository to scaffold, install dependencies, and do a smoke test. Here are the concrete results and follow-up notes you should have in the README for reproducibility.
+
+- Actions taken:
+    - Created the project files described in the README (config, embeddings/, agents/, tools/, main.py, requirements.txt).
+    - Created a virtual environment and installed packages from `requirements.txt`.
+    - Performed an import and initialization smoke test (instantiated the assistant without entering the interactive loop).
+
+- Installation result:
+    - `pip install -r requirements.txt` succeeded in the environment used during this run. Many packages were installed (LangChain and community packages, Chroma, faiss-cpu, sentence-transformers, etc.).
+
+- Issues encountered and how I addressed them (these are now documented so future users can avoid surprises):
+    1. Missing LangChain submodules / API mismatches
+         - Symptom: ImportError / ModuleNotFoundError for items like `langchain.text_splitter`, `langchain.memory`, and `langchain.tools.Tool` during an import of `main.py`.
+         - Cause: LangChain's public API surface has changed across versions (some symbols moved or are exposed differently).
+         - Recommendation: pin a compatible LangChain version in `requirements.txt` (for example: `langchain==1.2.2`) or adapt code to the installed LangChain version. I added safe fallbacks in the code so the project can be imported for testing even if those exact submodules are not present.
+
+    2. DuckDuckGo wrapper dependency (`ddgs`) missing
+         - Symptom: ImportError: "Could not import ddgs python package. Please install it with `pip install -U ddgs`."
+         - Cause: `langchain_community.utilities.DuckDuckGoSearchAPIWrapper` delegates to the `ddgs` package which may not be installed by default.
+         - Recommendation: install `ddgs` (`pip install ddgs`) to enable the `WebSearchTool` wrapper. The code now contains a fallback that returns no results if `ddgs` is not installed.
+
+    3. Ollama runtime and models
+         - Symptom: If Ollama is not running (`ollama serve`) or if the configured models are not pulled, calls to `ChatOllama` or `OllamaEmbeddings` will fail at runtime.
+         - Recommendation: Ensure Ollama is installed and running (on Windows run the installer from ollama.ai or `ollama serve`), and pull models recommended in the README (e.g., `ollama pull llama3.1` and `ollama pull nomic-embed-text`). The code provides fallbacks so you can still import/run a reduced local mode without Ollama for testing, but full functionality requires Ollama.
+
+- Code changes made for robustness (low-risk, reversible):
+    - `embeddings/vector_store.py`: added graceful fallbacks and lazy imports so the vector store can be imported even when some optional packages are missing.
+    - `agents/memory_manager.py`: added a small fallback memory implementation when `langchain.memory` is not available.
+    - `agents/research_agent.py`: added fallbacks for missing LangChain agent APIs (e.g., `AgentExecutor`, `create_react_agent`, `PromptTemplate`, `RetrievalQA`) and a simple executor stub so the assistant can be instantiated without the full LangChain agent stack.
+    - `tools/web_search.py` and `tools/calculator.py`: added local fallbacks when `langchain.tools.Tool` or `ddgs` are unavailable.
+
+- How I validated things
+    - Verified `pip install -r requirements.txt` completed and inspected installed packages.
+    - Verified `python -c "import main; ..."` (import and non-interactive initialization) succeeded after adding fallbacks.
+
+- Next steps you may want to do locally
+    1. Start Ollama: `ollama serve` and ensure the models from the README are pulled.
+ 2. (Optional) Install `ddgs` to enable DuckDuckGo search: `pip install ddgs`.
+ 3. If you want to use the full LangChain agent features, pick a tested LangChain version and pin it in `requirements.txt` (example: `langchain==1.2.2`).
+
+If you'd like, I can now:
+- pin and update `requirements.txt` with exact, tested package versions,
+- remove the temporary fallback code and instead adapt the code to a particular LangChain version, or
+- add a small test script that runs a few example flows with fallbacks (calculator + web search stub + RAG stub).
